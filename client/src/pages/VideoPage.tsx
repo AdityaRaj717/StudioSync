@@ -1,3 +1,4 @@
+import { io } from "socket.io-client";
 import { useEffect, useState, useRef } from "react";
 
 function VideoPage() {
@@ -6,17 +7,25 @@ function VideoPage() {
   const videoRef = useRef(null);
 
   useEffect(() => {
+    io("https://localhost:3000");
+  }, []);
+
+  useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
   }, [stream]);
 
   async function getUserFeed() {
-    const videoFeed = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    setStream(videoFeed);
+    try {
+      const videoFeed = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      setStream(videoFeed);
+    } catch (error) {
+      alert("User denied video and mic access");
+    }
   }
 
   return (
