@@ -2,9 +2,9 @@ import { io } from "socket.io-client";
 import { useMemo, useEffect, useState, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-const socket = io("https://localhost:3000");
-
 function VideoPage() {
+  const socket = useMemo(() => io("https://localhost:3000"), []);
+
   const [localStream, setLocalStream] = useState(null);
   const [roomId, setRoomId] = useState("");
   const [joinRoomCode, setJoinRoomCode] = useState("");
@@ -16,6 +16,12 @@ function VideoPage() {
 
   socket.on("new-member-joined", (clients) => {
     setClients(clients);
+  });
+
+  socket.on("new-offer", (client) => {
+    console.log("New offer recieved");
+    console.log(client);
+    if (socket.id !== client) alert("User Found");
   });
 
   useEffect(() => {
@@ -33,7 +39,7 @@ function VideoPage() {
     }
     alert(`Room id: ${roomId}`);
     socket.emit("room-id", roomId);
-  }, [roomId]);
+  }, [socket, roomId]);
 
   async function getUserFeed() {
     try {
@@ -54,8 +60,11 @@ function VideoPage() {
         case "no-room":
           alert("No room found!");
           break;
+        case "room-full":
+          alert("Room is Full!");
+          break;
         case "ok":
-          alert("Room Joined");
+          alert("Room Joined!");
           setClients(response.clients);
           break;
       }
@@ -78,12 +87,13 @@ function VideoPage() {
 
     const offer = await peerConnectionRef.current.createOffer();
     await peerConnectionRef.current.setLocalDescription(offer);
-    socket.emit("sending-offer", offer);
+    socket.emit("sending-offer", offer, joinRoomCode, socket.id);
   }
 
   return (
     <>
       <div className="flex h-[100vh] gap-3 flex-col justify-center items-center">
+        <p>{socket.id}</p>
         <div className="flex gap-3">
           <video
             className="border-2"
@@ -112,7 +122,7 @@ function VideoPage() {
             </button>
           </div>
         </div>
-        {roomId && <p>RoomId: {roomId}</p>}
+        {roomId && <p>{roomId}</p>}
         {clients.length > 0 && (
           <ul>
             {clients.map((client, index) => (

@@ -42,22 +42,32 @@ io.on("connection", (socket) => {
     let status = "";
     if (!room) status = "no-room";
     else {
-      room.clients.push(socket.id);
-      socket.join(roomId);
-      status = "ok";
+      if (room.clients.length < 2) {
+        room.clients.push(socket.id);
+        socket.join(roomId);
+        status = "ok";
+        socket.to(roomId).emit("new-member-joined", room.clients);
+      } else status = "room-full";
     }
     callback({
       status: status,
       clients: room.clients,
     });
-    socket.broadcast.emit("new-member-joined", room.clients);
   });
 
-  socket.on("sending-offer", (offer) => {
-    console.log(offer);
+  socket.on("sending-offer", (offer, roomId, socketId) => {
+    const room = rooms.find((room) => room.roomId === roomId);
+    const ids = io.sockets.adapter.rooms.get(roomId);
+    let otherClientId = "";
+    for (const id of ids) {
+      if (id !== socketId) {
+        otherClientId = id;
+      }
+    }
+    socket.to(roomId).emit("new-offer", otherClientId);
   });
 });
 
 app.get("/", (req, res) => res.send("Hello World"));
 
-server.listen(3000, () => console.log("Server has started listening..."));
+server.listen(3000, () => console.log("Server listening on port 3000"));
