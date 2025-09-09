@@ -21,8 +21,30 @@ const io = new Server(server, {
   },
 });
 
+const rooms = [];
+
 io.on("connection", (socket) => {
   console.log("✅ A new user has connected");
+  socket.on("room-id", (roomId) => {
+    const room = rooms.find((room) => room.roomId === roomId);
+    if (!room) {
+      rooms.push({
+        roomId: roomId,
+        clients: [socket.id],
+      });
+      socket.join(roomId);
+    }
+    // console.log(socket.id);
+    // console.log(rooms);
+  });
+  socket.on("join-room", (roomId) => {
+    const room = rooms.find((room) => room.roomId === roomId);
+    if (!room) socket.emit("no-room-found");
+    if (room.clients.length < 2) {
+      room.clients.push(socket.id);
+      socket.join(roomId);
+    } else console.log("Cannot Join the Room");
+  });
 });
 
 app.get("/", (req, res) => res.send("Hello World"));
