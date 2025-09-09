@@ -37,13 +37,24 @@ io.on("connection", (socket) => {
     // console.log(socket.id);
     // console.log(rooms);
   });
-  socket.on("join-room", (roomId) => {
+  socket.on("join-room", (roomId, callback) => {
     const room = rooms.find((room) => room.roomId === roomId);
-    if (!room) socket.emit("no-room-found");
-    if (room.clients.length < 2) {
+    let status = "";
+    if (!room) status = "no-room";
+    else {
       room.clients.push(socket.id);
       socket.join(roomId);
-    } else console.log("Cannot Join the Room");
+      status = "ok";
+    }
+    callback({
+      status: status,
+      clients: room.clients,
+    });
+    socket.broadcast.emit("new-member-joined", room.clients);
+  });
+
+  socket.on("sending-offer", (offer) => {
+    console.log(offer);
   });
 });
 
