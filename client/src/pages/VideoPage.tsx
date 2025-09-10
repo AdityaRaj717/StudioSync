@@ -5,35 +5,40 @@ import { v4 as uuidv4 } from "uuid";
 function VideoPage() {
   const socket = useMemo(() => io("https://localhost:3000"), []);
 
-  const [userId, setUserId] = useState(null);
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [roomId, setRoomId] = useState("");
+  const [myId, setMyId] = useState("");
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [clients, setClients] = useState([]);
 
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const peerConnectionRef = useRef(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
   useEffect(() => {
     socket.on("connect", () => {
-      setUserId(socket.id);
+      setMyId(socket.id);
     });
-  }, [socket]);
 
-  socket.on("new-member-joined", (clients) => {
-    setClients(clients);
-  });
+    socket.on("new-member-joined", (clients) => {
+      setClients(clients);
+    });
 
-  socket.on("new-offer", async (offer) => {
-    await getUserFeed();
-    await createPeerConnection(offer);
-    await peerConnectionRef.current.setRemoteDescription(offer);
-    const answer = await peerConnectionRef.current.createAnswer();
-    peerConnectionRef.setLocalDescription(answer);
-    console.log(answer);
-  });
+    socket.on("new-offer", async (offer) => {
+      if (peerConnectionRef.current) {
+        await peerConnectionRef.current.setRemoteDescription(offer);
+
+        const answer = await peerConnectionRef.current.createAnswer();
+        await peerConnectionRef.current.setLocalDescription(answer);
+
+        socket.emit("sending-answer", answer, joinRoomCode);
+      }
+    });
+
+    socket.on("new-answer", (answer) => {
+      console.log(answer);
+    });
+  }, [socket, joinRoomCode]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -42,10 +47,25 @@ function VideoPage() {
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    const peerConfiguration = {
+      iceServers: [
+        {
+          urls: [
+            "stun:stun.l.google.com:19302",
+            "stun:stun1.l.google.com:19302",
+          ],
+        },
+      ],
+    };
+    if (localStream) {
+      peerConnectionRef.current = new RTCPeerConnection(peerConfiguration);
+      localStream.getTracks().forEach((track) => {
+        if (peerConnectionRef.current) {
+          peerConnectionRef.current.addTrack(track, localStream);
+        }
+      });
     }
-  }, [remoteStream]);
+  }, [localStream]);
 
   const isFirstRender = useRef(true);
 
@@ -64,7 +84,6 @@ function VideoPage() {
         video: true,
         audio: true,
       });
-      console.log(videoFeed);
       setLocalStream(videoFeed);
     } catch (error) {
       alert("User denied video and mic access");
@@ -73,7 +92,7 @@ function VideoPage() {
 
   function joinRoom() {
     if (!joinRoomCode) return;
-    socket.emit("join-room", joinRoomCode, (response) => {
+    socket.emit("join-room", joinRoomCode, (response: any) => {
       switch (response.status) {
         case "no-room":
           alert("No room found!");
@@ -89,39 +108,20 @@ function VideoPage() {
     });
   }
 
-  const peerConfiguration = {
-    iceServers: [
-      {
-        urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"],
-      },
-    ],
-  };
-
-  async function createPeerConnection(offerObj = null) {
-    await getUserFeed();
-    const stream = new MediaStream();
-    setRemoteStream(stream);
-    peerConnectionRef.current = new RTCPeerConnection(peerConfiguration);
-    localStream.getTracks().forEach((track) => {
-      peerConnectionRef.current.addTrack(track, localStream);
-    });
-
-    if (offerObj) {
-      await peerConnectionRef.setRemoteDescription(offerObj);
-    }
-  }
-
   async function callUser() {
-    await createPeerConnection();
-    const offer = await peerConnectionRef.current.createOffer();
-    await peerConnectionRef.current.setLocalDescription(offer);
-    socket.emit("sending-offer", offer, joinRoomCode);
+    if (peerConnectionRef.current) {
+      const offer = await peerConnectionRef.current.createOffer();
+      await peerConnectionRef.current.setLocalDescription(offer);
+      socket.emit("sending-offer", offer, joinRoomCode);
+    } else {
+      console.error("Peer connection not initialized");
+    }
   }
 
   return (
     <>
       <div className="flex h-[100vh] gap-3 flex-col justify-center items-center">
-        <p>{userId}</p>
+        <p>{myId}</p>
         <div className="flex gap-3">
           <video
             className="border-2"
@@ -153,14 +153,19 @@ function VideoPage() {
         {roomId && <p>{roomId}</p>}
         {clients.length > 0 && (
           <ul>
-            {clients.map((client, index) => (
-              <li key={index}>
-                {client}{" "}
-                <button className="border-2 p-2" onClick={callUser}>
-                  Call
-                </button>
-              </li>
-            ))}
+            {clients
+              .filter((client) => client !== myId)
+              .map((client, index) => (
+                <li key={index}>
+                  {client}{" "}
+                  <button
+                    className="border-2 p-2"
+                    onClick={() => callUser(client)}
+                  >
+                    Call
+                  </button>
+                </li>
+              ))}
           </ul>
         )}
       </div>

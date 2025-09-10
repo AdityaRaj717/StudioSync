@@ -59,6 +59,11 @@ io.on("connection", (socket) => {
     const room = rooms.find((room) => room.roomId === roomId);
     socket.to(roomId).emit("new-offer", offer);
   });
+
+  socket.on("sending-answer", (answer, roomId) => {
+    const room = rooms.find((room) => room.roomId === roomId);
+    socket.to(roomId).emit("new-answer", answer);
+  });
 });
 
 app.get("/", (req, res) => res.send("Hello World"));
