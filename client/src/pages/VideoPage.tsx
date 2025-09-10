@@ -9,9 +9,13 @@ function VideoPage() {
   const [myId, setMyId] = useState("");
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [clients, setClients] = useState<string[]>([]);
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+
+  // Ref to store an offer if it arrives before the peer connection is ready
+  const queuedOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
 
   const getOpponentId = useCallback((): string | null => {
     const opponent = clients.find((client) => client !== myId);
@@ -30,20 +34,22 @@ function VideoPage() {
 
     // Recieve offer and create answer for the target client
     socket.on("new-offer", async (offer) => {
-      if (peerConnectionRef.current) {
-        await peerConnectionRef.current.setRemoteDescription(offer);
-        console.log("Client received offer and set remote description");
-
-        const answer = await peerConnectionRef.current.createAnswer();
-        await peerConnectionRef.current.setLocalDescription(answer);
-        console.log("Client sending answer");
-
-        const opponentId = getOpponentId();
-        if (opponentId)
-          socket.emit("sending-answer", answer, roomId, opponentId);
-      } else {
-        getUserFeed();
+      // If we don't have a stream/peer connection, queue the offer and get the user's media.
+      if (!peerConnectionRef.current) {
+        queuedOfferRef.current = offer;
+        await getUserFeed();
+        return;
       }
+
+      await peerConnectionRef.current.setRemoteDescription(offer);
+      console.log("Client received offer and set remote description");
+
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
+      console.log("Client sending answer");
+
+      const opponentId = getOpponentId();
+      if (opponentId) socket.emit("sending-answer", answer, roomId, opponentId);
     });
 
     // Recieve the answer from other client
@@ -78,6 +84,7 @@ function VideoPage() {
   }, [localStream]);
 
   useEffect(() => {
+    if (!localStream) return;
     const peerConfiguration = {
       iceServers: [
         {
@@ -85,33 +92,46 @@ function VideoPage() {
         },
       ],
     };
-    if (localStream) {
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-        peerConnectionRef.current = null;
-      }
-      peerConnectionRef.current = new RTCPeerConnection(peerConfiguration);
 
-      localStream.getTracks().forEach((track) => {
-        if (peerConnectionRef.current) {
-          peerConnectionRef.current.addTrack(track, localStream);
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    peerConnectionRef.current = new RTCPeerConnection(peerConfiguration);
+
+    localStream.getTracks().forEach((track) => {
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.addTrack(track, localStream);
+      }
+    });
+    peerConnectionRef.current.addEventListener("icecandidate", (event) => {
+      if (event.candidate) {
+        console.log("Sending ICE Candidates to server");
+        const opponentId = getOpponentId();
+        if (opponentId) {
+          socket.emit("sendIceToServer", event.candidate, roomId, opponentId);
+        }
+      }
+    });
+    peerConnectionRef.current.addEventListener("track", (event) => {
+      if (remoteVideoRef.current) {
+        console.log("Received remote track with streams:", event.streams[0]);
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+    });
+
+    // Check if there's a queued offer and process it
+    if (queuedOfferRef.current) {
+      const offer = queuedOfferRef.current;
+      peerConnectionRef.current.setRemoteDescription(offer).then(async () => {
+        const answer = await peerConnectionRef.current!.createAnswer();
+        await peerConnectionRef.current!.setLocalDescription(answer);
+        const opponentId = getOpponentId();
+        if (opponentId) {
+          socket.emit("sending-answer", answer, roomId, opponentId);
         }
       });
-      peerConnectionRef.current.addEventListener("icecandidate", (event) => {
-        if (event.candidate) {
-          console.log("Sending ICE Candidates to server");
-          const opponentId = getOpponentId();
-          if (opponentId) {
-            socket.emit("sendIceToServer", event.candidate, roomId, opponentId);
-          }
-        }
-      });
-      peerConnectionRef.current.addEventListener("track", (event) => {
-        if (remoteVideoRef.current) {
-          console.log("Received remote track with streams:", event.streams[0]);
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      });
+      queuedOfferRef.current = null;
     }
   }, [getOpponentId, roomId, socket, localStream]);
 
@@ -180,7 +200,12 @@ function VideoPage() {
             playsInline
             muted
           ></video>
-          <video className="border-2" ref={remoteVideoRef}></video>
+          <video
+            className="border-2"
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+          ></video>
         </div>
         <div className="flex flex-col gap-3 w-2xs">
           <button className="border-2 p-2" onClick={() => setRoomId(uuidv4())}>
