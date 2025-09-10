@@ -5,7 +5,9 @@ import { v4 as uuidv4 } from "uuid";
 function VideoPage() {
   const socket = useMemo(() => io("https://localhost:3000"), []);
 
+  const [userId, setUserId] = useState(null);
   const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
   const [roomId, setRoomId] = useState("");
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [clients, setClients] = useState([]);
@@ -14,14 +16,23 @@ function VideoPage() {
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
 
+  useEffect(() => {
+    socket.on("connect", () => {
+      setUserId(socket.id);
+    });
+  }, [socket]);
+
   socket.on("new-member-joined", (clients) => {
     setClients(clients);
   });
 
-  socket.on("new-offer", (client) => {
-    console.log("New offer recieved");
-    console.log(client);
-    if (socket.id !== client) alert("User Found");
+  socket.on("new-offer", async (offer) => {
+    await getUserFeed();
+    await createPeerConnection(offer);
+    await peerConnectionRef.current.setRemoteDescription(offer);
+    const answer = await peerConnectionRef.current.createAnswer();
+    peerConnectionRef.setLocalDescription(answer);
+    console.log(answer);
   });
 
   useEffect(() => {
@@ -29,6 +40,12 @@ function VideoPage() {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const isFirstRender = useRef(true);
 
@@ -47,6 +64,7 @@ function VideoPage() {
         video: true,
         audio: true,
       });
+      console.log(videoFeed);
       setLocalStream(videoFeed);
     } catch (error) {
       alert("User denied video and mic access");
@@ -79,21 +97,31 @@ function VideoPage() {
     ],
   };
 
-  async function callUser() {
+  async function createPeerConnection(offerObj = null) {
+    await getUserFeed();
+    const stream = new MediaStream();
+    setRemoteStream(stream);
     peerConnectionRef.current = new RTCPeerConnection(peerConfiguration);
     localStream.getTracks().forEach((track) => {
       peerConnectionRef.current.addTrack(track, localStream);
     });
 
+    if (offerObj) {
+      await peerConnectionRef.setRemoteDescription(offerObj);
+    }
+  }
+
+  async function callUser() {
+    await createPeerConnection();
     const offer = await peerConnectionRef.current.createOffer();
     await peerConnectionRef.current.setLocalDescription(offer);
-    socket.emit("sending-offer", offer, joinRoomCode, socket.id);
+    socket.emit("sending-offer", offer, joinRoomCode);
   }
 
   return (
     <>
       <div className="flex h-[100vh] gap-3 flex-col justify-center items-center">
-        <p>{socket.id}</p>
+        <p>{userId}</p>
         <div className="flex gap-3">
           <video
             className="border-2"

@@ -55,16 +55,9 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("sending-offer", (offer, roomId, socketId) => {
+  socket.on("sending-offer", (offer, roomId) => {
     const room = rooms.find((room) => room.roomId === roomId);
-    const ids = io.sockets.adapter.rooms.get(roomId);
-    let otherClientId = "";
-    for (const id of ids) {
-      if (id !== socketId) {
-        otherClientId = id;
-      }
-    }
-    socket.to(roomId).emit("new-offer", otherClientId);
+    socket.to(roomId).emit("new-offer", offer);
   });
 });
 
