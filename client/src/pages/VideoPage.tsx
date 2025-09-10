@@ -27,20 +27,25 @@ function VideoPage() {
     socket.on("new-offer", async (offer) => {
       if (peerConnectionRef.current) {
         await peerConnectionRef.current.setRemoteDescription(offer);
-
+        // Sanity Check
+        if (peerConnectionRef.current.remoteDescription)
+          console.log("Client 2 recieved offer and remote desc set");
         const answer = await peerConnectionRef.current.createAnswer();
         await peerConnectionRef.current.setLocalDescription(answer);
+        // Sanity Check
+        if (peerConnectionRef.current.localDescription)
+          console.log("Client 2 sending answer");
 
         socket.emit("sending-answer", answer, joinRoomCode);
-      }
+      } else getUserFeed();
     });
 
     socket.on("new-answer", (answer) => {
-      console.log(answer);
+      if (answer) console.log("Caller recieved answer");
     });
 
     socket.on("sendIceToClient", (candidates) => {
-      peerConnectionRef.current.addIceCandidate(candidates);
+      // peerConnectionRef.current.addIceCandidate(candidates);
     });
   }, [socket, joinRoomCode]);
 
@@ -54,10 +59,7 @@ function VideoPage() {
     const peerConfiguration = {
       iceServers: [
         {
-          urls: [
-            "stun:stun.l.google.com:19302",
-            "stun:stun1.l.google.com:19302",
-          ],
+          urls: ["stun:stun.l.google.com:19302", "stun:stun.l.google.com:5349"],
         },
       ],
     };
@@ -121,6 +123,9 @@ function VideoPage() {
     if (peerConnectionRef.current) {
       const offer = await peerConnectionRef.current.createOffer();
       await peerConnectionRef.current.setLocalDescription(offer);
+      // Sanity Check
+      if (peerConnectionRef.current.localDescription)
+        console.log("Calling user created offer");
       socket.emit("sending-offer", offer, joinRoomCode);
     } else {
       console.error("Peer connection not initialized");

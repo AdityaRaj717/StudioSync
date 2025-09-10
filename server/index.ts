@@ -34,8 +34,6 @@ io.on("connection", (socket) => {
       });
       socket.join(roomId);
     }
-    // console.log(socket.id);
-    // console.log(rooms);
   });
   socket.on("join-room", (roomId, callback) => {
     const room = rooms.find((room) => room.roomId === roomId);
@@ -56,16 +54,24 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sending-offer", (offer, roomId) => {
+    // Sanity Check
+    if (offer) console.log("Offer recieved from calling user");
     const room = rooms.find((room) => room.roomId === roomId);
     socket.to(roomId).emit("new-offer", offer);
   });
 
   socket.on("sending-answer", (answer, roomId) => {
+    // Sanity Check
+    if (answer) console.log("Answer recieved from Client 2");
+
     const room = rooms.find((room) => room.roomId === roomId);
+
+    // Sanity Check
+    console.log("Sending answer to caller");
     socket.to(roomId).emit("new-answer", answer);
   });
 
-  socket.on("sendIceToServer", (candidates) => {
+  socket.on("sendIceToServer", (candidates, roomId) => {
     socket.to(roomId).emit("sendIceToClient", candidates);
   });
 });
