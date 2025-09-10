@@ -1,53 +1,75 @@
 import { io } from "socket.io-client";
-import { useMemo, useEffect, useState, useRef } from "react";
+import { useCallback, useMemo, useEffect, useState, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 function VideoPage() {
   const socket = useMemo(() => io("https://localhost:3000"), []);
-
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [roomId, setRoomId] = useState("");
   const [myId, setMyId] = useState("");
   const [joinRoomCode, setJoinRoomCode] = useState("");
-  const [clients, setClients] = useState([]);
-
+  const [clients, setClients] = useState<string[]>([]);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+
+  const getOpponentId = useCallback((): string | null => {
+    const opponent = clients.find((client) => client !== myId);
+    return opponent || null;
+  }, [clients, myId]);
 
   useEffect(() => {
     socket.on("connect", () => {
       setMyId(socket.id);
     });
 
-    socket.on("new-member-joined", (clients) => {
-      setClients(clients);
+    // Show online clients
+    socket.on("new-member-joined", (updatedClients: string[]) => {
+      setClients(updatedClients);
     });
 
+    // Recieve offer and create answer for the target client
     socket.on("new-offer", async (offer) => {
       if (peerConnectionRef.current) {
         await peerConnectionRef.current.setRemoteDescription(offer);
-        // Sanity Check
-        if (peerConnectionRef.current.remoteDescription)
-          console.log("Client 2 recieved offer and remote desc set");
+        console.log("Client received offer and set remote description");
+
         const answer = await peerConnectionRef.current.createAnswer();
         await peerConnectionRef.current.setLocalDescription(answer);
-        // Sanity Check
-        if (peerConnectionRef.current.localDescription)
-          console.log("Client 2 sending answer");
+        console.log("Client sending answer");
 
-        socket.emit("sending-answer", answer, joinRoomCode);
-      } else getUserFeed();
+        const opponentId = getOpponentId();
+        if (opponentId)
+          socket.emit("sending-answer", answer, roomId, opponentId);
+      } else {
+        getUserFeed();
+      }
     });
 
-    socket.on("new-answer", (answer) => {
-      if (answer) console.log("Caller recieved answer");
+    // Recieve the answer from other client
+    socket.on("new-answer", async (answer) => {
+      if (peerConnectionRef.current && answer) {
+        console.log("Caller received answer");
+        await peerConnectionRef.current.setRemoteDescription(answer);
+      }
     });
 
-    socket.on("sendIceToClient", (candidates) => {
-      // peerConnectionRef.current.addIceCandidate(candidates);
+    // Recieve Ice Candidates
+    socket.on("sendIceToClient", (candidate) => {
+      if (peerConnectionRef.current) {
+        console.log("Recieving ICE Candidates from server");
+        peerConnectionRef.current.addIceCandidate(candidate);
+      }
     });
-  }, [socket, joinRoomCode]);
+
+    return () => {
+      socket.off("connect");
+      socket.off("new-member-joined");
+      socket.off("new-offer");
+      socket.off("new-answer");
+      socket.off("sendIceToClient");
+    };
+  }, [getOpponentId, socket, roomId]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -64,19 +86,34 @@ function VideoPage() {
       ],
     };
     if (localStream) {
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
       peerConnectionRef.current = new RTCPeerConnection(peerConfiguration);
+
       localStream.getTracks().forEach((track) => {
         if (peerConnectionRef.current) {
           peerConnectionRef.current.addTrack(track, localStream);
         }
       });
-
       peerConnectionRef.current.addEventListener("icecandidate", (event) => {
-        if (event.candidate)
-          socket.emit("sendIceToServer", event.candidate, roomId);
+        if (event.candidate) {
+          console.log("Sending ICE Candidates to server");
+          const opponentId = getOpponentId();
+          if (opponentId) {
+            socket.emit("sendIceToServer", event.candidate, roomId, opponentId);
+          }
+        }
+      });
+      peerConnectionRef.current.addEventListener("track", (event) => {
+        if (remoteVideoRef.current) {
+          console.log("Received remote track with streams:", event.streams[0]);
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
       });
     }
-  }, [roomId, socket, localStream]);
+  }, [getOpponentId, roomId, socket, localStream]);
 
   const isFirstRender = useRef(true);
 
@@ -114,19 +151,18 @@ function VideoPage() {
         case "ok":
           alert("Room Joined!");
           setClients(response.clients);
+          setRoomId(joinRoomCode);
           break;
       }
     });
   }
 
-  async function callUser() {
+  async function callUser(targetSocketId: string) {
     if (peerConnectionRef.current) {
       const offer = await peerConnectionRef.current.createOffer();
       await peerConnectionRef.current.setLocalDescription(offer);
-      // Sanity Check
-      if (peerConnectionRef.current.localDescription)
-        console.log("Calling user created offer");
-      socket.emit("sending-offer", offer, joinRoomCode);
+      console.log("Calling user created offer");
+      socket.emit("sending-offer", offer, roomId, targetSocketId);
     } else {
       console.error("Peer connection not initialized");
     }
@@ -135,7 +171,7 @@ function VideoPage() {
   return (
     <>
       <div className="flex h-[100vh] gap-3 flex-col justify-center items-center">
-        <p>{myId}</p>
+        <p>Your ID: {myId}</p>
         <div className="flex gap-3">
           <video
             className="border-2"
@@ -164,7 +200,7 @@ function VideoPage() {
             </button>
           </div>
         </div>
-        {roomId && <p>{roomId}</p>}
+        {roomId && <p>Room ID: {roomId}</p>}
         {clients.length > 0 && (
           <ul>
             {clients
