@@ -64,6 +64,10 @@ io.on("connection", (socket) => {
     const room = rooms.find((room) => room.roomId === roomId);
     socket.to(roomId).emit("new-answer", answer);
   });
+
+  socket.on("sendIceToServer", (candidates) => {
+    socket.to(roomId).emit("sendIceToClient", candidates);
+  });
 });
 
 app.get("/", (req, res) => res.send("Hello World"));

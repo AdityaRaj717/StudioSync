@@ -38,6 +38,10 @@ function VideoPage() {
     socket.on("new-answer", (answer) => {
       console.log(answer);
     });
+
+    socket.on("sendIceToClient", (candidates) => {
+      peerConnectionRef.current.addIceCandidate(candidates);
+    });
   }, [socket, joinRoomCode]);
 
   useEffect(() => {
@@ -64,8 +68,13 @@ function VideoPage() {
           peerConnectionRef.current.addTrack(track, localStream);
         }
       });
+
+      peerConnectionRef.current.addEventListener("icecandidate", (event) => {
+        if (event.candidate)
+          socket.emit("sendIceToServer", event.candidate, roomId);
+      });
     }
-  }, [localStream]);
+  }, [roomId, socket, localStream]);
 
   const isFirstRender = useRef(true);
 
