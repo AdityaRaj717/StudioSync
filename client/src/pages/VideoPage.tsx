@@ -10,6 +10,12 @@ function VideoPage() {
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [clients, setClients] = useState<string[]>([]);
 
+  // UI States
+  const [createRoomButton, setCreateRoomButton] = useState(false);
+  const [joinButton, setJoinButton] = useState(false);
+  const [getStreamButton, setStreamButton] = useState(false);
+  const [connectionState, setConnectionState] = useState(false);
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -183,6 +189,7 @@ function VideoPage() {
       await peerConnectionRef.current.setLocalDescription(offer);
       console.log("Calling user created offer");
       socket.emit("sending-offer", offer, roomId, targetSocketId);
+      setConnectionState(true);
     } else {
       console.error("Peer connection not initialized");
     }
@@ -207,24 +214,53 @@ function VideoPage() {
             playsInline
           ></video>
         </div>
-        <div className="flex flex-col gap-3 w-2xs">
-          <button className="border-2 p-2" onClick={() => setRoomId(uuidv4())}>
-            Create Room
-          </button>
-          <button className="border-2 p-2" onClick={getUserFeed}>
-            Get Stream
-          </button>
-          <div className="flex gap-2">
-            <input
-              className="border-2"
-              type="text"
-              onChange={(e) => setJoinRoomCode(e.target.value)}
-            />
-            <button className="border-2 p-2" onClick={joinRoom}>
-              Join
-            </button>
-          </div>
-        </div>
+        {!connectionState && (
+          <>
+            <div className="flex flex-col gap-3 w-2xs">
+              {!createRoomButton && !joinButton && (
+                <>
+                  <button
+                    className="border-2 p-2"
+                    onClick={() => {
+                      setRoomId(uuidv4());
+                      setCreateRoomButton(true);
+                    }}
+                  >
+                    Create Room
+                  </button>
+                  <div className="flex gap-2">
+                    <input
+                      className="border-2"
+                      type="text"
+                      onChange={(e) => setJoinRoomCode(e.target.value)}
+                    />
+                    <button
+                      className="border-2 p-2"
+                      onClick={() => {
+                        joinRoom();
+                        setJoinButton(true);
+                      }}
+                    >
+                      Join
+                    </button>
+                  </div>
+                </>
+              )}
+              {!getStreamButton && (
+                <button
+                  className="border-2 p-2"
+                  onClick={() => {
+                    getUserFeed();
+                    setStreamButton(true);
+                  }}
+                >
+                  Get Stream
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
         {roomId && <p>Room ID: {roomId}</p>}
         {clients.length > 0 && (
           <ul>
