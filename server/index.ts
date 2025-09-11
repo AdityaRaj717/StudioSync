@@ -1,19 +1,16 @@
+import dotenv from "dotenv";
+dotenv.config();
 import https from "https";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
-import dotenv from "dotenv";
 import { Server } from "socket.io";
-import session from "express-session";
-import MongoStore from "connect-mongo";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-import "./config/passport.ts";
 import connect from "./config/db.ts";
-
-dotenv.config();
+import "./config/passport.ts";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -31,24 +28,6 @@ app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Express Session
-// const sessionStore = new MongoStore({
-//   mongooseConnection: connection,
-//   collection: "sessions",
-// });
-
-// app.use(
-//   session({
-//     secret: process.env.SECRET,
-//     resave: false,
-//     saveUninitialized: true,
-//     store: sessionStore,
-//     cookie: {
-//       maxAge: 1000 * 60 * 60 * 24,
-//     },
-//   })
-// );
 
 const io = new Server(server, {
   cors: {

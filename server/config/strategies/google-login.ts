@@ -2,9 +2,6 @@ import User from "../../model/User.ts";
 import { Strategy as googleStrategy } from "passport-google-oauth20";
 
 export default function googleAuth(passport) {
-  console.log(process.env.GOOGLE_CLIENT_ID);
-  console.log(process.env.GOOGLE_CLIENT_SECRET);
-  console.log(process.env.PORT);
   passport.use(
     new googleStrategy(
       {
