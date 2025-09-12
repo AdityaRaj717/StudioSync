@@ -13,8 +13,12 @@ import { Label } from "@/components/ui/label";
 export function LoginForm({
   className,
   googleLogin,
+  isLoading,
   ...props
-}: React.ComponentProps<"div"> & { googleLogin?: () => void }) {
+}: React.ComponentProps<"div"> & {
+  googleLogin?: () => void;
+  isLoading: boolean;
+}) {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -56,6 +60,7 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   onClick={googleLogin}
+                  disabled={isLoading}
                 >
                   Login with Google
                 </Button>

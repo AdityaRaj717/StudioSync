@@ -4,9 +4,9 @@ export const googleCallback = (req: Request, res: Response) => {
   try {
     const token = jwt.sign(
       {
-        sub: req.user._id,
+        sub: (req.user as any)._id,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET!,
       { expiresIn: "1h" }
     );
 
@@ -15,7 +15,7 @@ export const googleCallback = (req: Request, res: Response) => {
       secure: true,
       sameSite: "lax",
     });
-    res.redirect(`${process.env.UI_URL}/success-login?access_token=${token}`);
+    res.redirect(`${process.env.UI_URL}/success-login`);
   } catch (error) {
     console.error("Error during google callback", error);
     res.status(500).json({ message: "Internal server error" });

@@ -23,13 +23,12 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (userData) navigate("/video-page");
-    else navigate("/login");
   }, [navigate, userData]);
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
-        <LoginForm googleLogin={handleGoogleLogin} />
+        <LoginForm googleLogin={handleGoogleLogin} isLoading={isLoading} />
       </div>
     </div>
   );
