@@ -15,8 +15,7 @@ export const googleCallback = (req: Request, res: Response) => {
       secure: true,
       sameSite: "lax",
     });
-    // res.redirect(`${process.env.UI_URL}/success-login?access_token=${token}`);
-    res.redirect(`https://localhost:5173/success-login?access_token=${token}`);
+    res.redirect(`${process.env.UI_URL}/success-login?access_token=${token}`);
   } catch (error) {
     console.error("Error during google callback", error);
     res.status(500).json({ message: "Internal server error" });

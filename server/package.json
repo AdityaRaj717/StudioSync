@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' index.ts"
+    "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node -r dotenv/config' index.ts"
   },
   "keywords": [],
   "author": "",
