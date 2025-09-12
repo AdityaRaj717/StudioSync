@@ -8,7 +8,7 @@ export default function jwtAuth(passport) {
     new JwtStrategy(
       {
         jwtFromRequest: cookieExtractor,
-        secretOrKey: process.env.JWT_SECRET,
+        secretOrKey: process.env.JWT_SECRET as string,
       },
       async (payload, done) => {
         try {

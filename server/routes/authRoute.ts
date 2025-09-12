@@ -1,6 +1,6 @@
 import { Router } from "express";
 import passport from "passport";
-import authController from "../controllers/authController.ts";
+import { getUser, googleCallback } from "../controllers/authController.ts";
 
 const router = Router();
 
@@ -11,17 +11,10 @@ router.get(
 
 router.get(
   "/google/callback",
-  passport.authenticate(
-    "google",
-    { session: false },
-    authController.googleCallback
-  )
+  passport.authenticate("google", { session: false }, googleCallback)
 );
 
-router.get(
-  "/user",
-  passport.authenticate("jwt", { session: false }, authController.getUser)
-);
+router.get("/user", passport.authenticate("jwt", { session: false }, getUser));
 
 router.post("/logout", (req, res) => {
   res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "lax" });

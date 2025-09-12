@@ -11,6 +11,8 @@ import cookieParser from "cookie-parser";
 
 import connect from "./config/db.ts";
 import "./config/passport.ts";
+import passport from "passport";
+import authRoute from "./routes/authRoute.ts";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +30,7 @@ app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
 
 const io = new Server(server, {
   cors: {
@@ -105,6 +108,7 @@ io.on("connection", (socket) => {
   });
 });
 
+app.use("/auth", authRoute);
 app.get("/", (req, res) => res.send("Hello World"));
 
 server.listen(PORT, () => console.log(`Server listening on port: ${PORT}`));
