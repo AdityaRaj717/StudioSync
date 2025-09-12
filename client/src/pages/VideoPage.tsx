@@ -1,8 +1,11 @@
 import { io } from "socket.io-client";
 import { useCallback, useMemo, useEffect, useState, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function VideoPage() {
+  const navigate = useNavigate();
   const socket = useMemo(() => io("https://localhost:3000"), []);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [roomId, setRoomId] = useState("");
@@ -19,6 +22,21 @@ function VideoPage() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      localStorage.removeItem("user");
+      navigate("/login");
+    }
+  };
 
   // Ref to store an offer if it arrives before the peer connection is ready
   const queuedOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
@@ -196,7 +214,16 @@ function VideoPage() {
   }
 
   return (
-    <>
+    <div className="relative min-h-screen">
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 font-semibold text-white bg-red-600 rounded-md shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+        >
+          Logout
+        </button>
+      </div>
+
       <div className="flex h-[100vh] gap-3 flex-col justify-center items-center">
         <p>Your ID: {myId}</p>
         <div className="flex gap-3">
@@ -280,7 +307,7 @@ function VideoPage() {
           </ul>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

@@ -1,17 +1,22 @@
 import { createBrowserRouter } from "react-router";
-import { RouterProvider } from "react-router/dom";
+import { RouterProvider } from "react-router-dom";
 import VideoPage from "./pages/VideoPage";
-import Login from "./pages/Login";
+import LoginPage from "./pages/Login"; // Renamed for clarity from the file
 import SuccessLogin from "./pages/SuccessLogin";
+import ProtectedRoute from "./components/ProtectedRoute"; // 1. Import the new component
 
 const router = createBrowserRouter([
   {
     path: "/video-page",
-    element: <VideoPage />,
+    element: (
+      <ProtectedRoute>
+        <VideoPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/login",
-    element: <Login />,
+    element: <LoginPage />,
   },
   {
     path: "/success-login",

@@ -1,8 +1,20 @@
 import { Router } from "express";
 import passport from "passport";
-import { getUser, googleCallback } from "../controllers/authController.ts";
+import {
+  getUser,
+  googleCallback,
+  signupUser,
+  loginUser,
+} from "../controllers/authController.ts";
 
 const router = Router();
+
+router.post("/signup", signupUser);
+router.post(
+  "/login",
+  passport.authenticate("local", { session: false }),
+  loginUser
+);
 
 router.get(
   "/google",
