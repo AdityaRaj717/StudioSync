@@ -1,25 +1,25 @@
-import { LoginForm } from "@/components/auth/login-form";
+import { SignupForm } from "@/components/auth/SignupForm";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const apiUrl = import.meta.env.VITE_API_URL;
 
-  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
-
     const formData = new FormData(event.currentTarget);
+    const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
     try {
       const response = await axios.post(
-        `${apiUrl}/auth/login`,
-        { email, password },
+        `${apiUrl}/auth/signup`,
+        { name, email, password },
         { withCredentials: true }
       );
       if (response.data.user) {
@@ -27,20 +27,10 @@ export default function LoginPage() {
         navigate("/video-page");
       }
     } catch (error: any) {
-      console.error("Login failed:", error);
-      alert(error.response?.data?.message || "An error occurred during login.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    try {
-      setIsLoading(true);
-      const googleLoginUrl = `${apiUrl}/auth/google`;
-      window.location.href = googleLoginUrl;
-    } catch (error) {
-      console.error("Error login with google", error);
+      console.error("Signup failed:", error);
+      alert(
+        error.response?.data?.message || "An error occurred during signup."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -55,11 +45,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
-        <LoginForm
-          handleLogin={handleLogin}
-          googleLogin={handleGoogleLogin}
-          isLoading={isLoading}
-        />
+        <SignupForm handleSignup={handleSignup} isLoading={isLoading} />
       </div>
     </div>
   );
