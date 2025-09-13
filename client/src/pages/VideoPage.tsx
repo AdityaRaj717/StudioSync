@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
 import { useSocket } from "../hooks/useSocket";
 import { useMediaStream } from "../hooks/useMediaStream";
 import { useWebRTC } from "../hooks/useWebRTC";
@@ -9,6 +8,15 @@ import { useWebRTC } from "../hooks/useWebRTC";
 import VideoPlayer from "../components/video/VideoPlayer";
 import RoomControls from "../components/video/RoomControls";
 import CallControls from "../components/video/CallControls";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 function VideoPage() {
   const navigate = useNavigate();
@@ -41,29 +49,32 @@ function VideoPage() {
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="absolute top-4 right-4 z-10">
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 font-semibold text-white bg-red-600 rounded-md shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-        >
-          Logout
-        </button>
-      </div>
+    <div className="flex h-screen bg-background text-foreground">
+      {/* Control Panel Sidebar */}
+      <aside className="w-80 border-r border-border p-4 flex flex-col gap-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">StreamSync</h1>
+          <Button
+            onClick={handleLogout}
+            variant="destructive-outline"
+            size="sm"
+          >
+            Logout
+          </Button>
+        </div>
+        <Separator />
 
-      <div className="flex h-screen flex-col justify-center items-center gap-4">
-        <p>Your ID: {myId}</p>
-
-        <VideoPlayer
-          localStream={localStream}
-          remoteVideoRef={remoteVideoRef}
-        />
-
-        {!localStream && (
-          <button className="border-2 p-2" onClick={getUserFeed}>
-            Get Stream
-          </button>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Your unique ID:</p>
+            <p className="font-mono text-sm break-words">
+              {myId || "Connecting..."}
+            </p>
+          </CardContent>
+        </Card>
 
         {localStream && !roomId && (
           <RoomControls
@@ -73,12 +84,35 @@ function VideoPage() {
           />
         )}
 
-        {roomId && <p>Room ID: {roomId}</p>}
-
-        {clients.length > 1 && (
-          <CallControls clients={clients} myId={myId} callUser={callUser} />
+        {roomId && (
+          <CallControls
+            clients={clients}
+            myId={myId}
+            callUser={callUser}
+            roomId={roomId}
+          />
         )}
-      </div>
+      </aside>
+
+      {/* Main Video Stage */}
+      <main className="flex-1 flex flex-col justify-center items-center p-6">
+        {localStream ? (
+          <VideoPlayer
+            localStream={localStream}
+            remoteVideoRef={remoteVideoRef}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            <h2 className="text-2xl font-semibold">Welcome to StreamSync</h2>
+            <p className="text-muted-foreground">
+              Click the button to start your camera and microphone.
+            </p>
+            <Button onClick={getUserFeed} size="lg">
+              Start Stream
+            </Button>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

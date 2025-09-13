@@ -1,5 +1,15 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface RoomControlsProps {
   socket: any;
@@ -18,7 +28,9 @@ const RoomControls: React.FC<RoomControlsProps> = ({
     const newRoomId = uuidv4();
     setRoomId(newRoomId);
     socket.emit("room-id", newRoomId);
-    alert(`Room created with ID: ${newRoomId}`);
+    alert(
+      `Room created with ID: ${newRoomId}\nShare this ID with others to join.`
+    );
   };
 
   const joinRoom = () => {
@@ -26,13 +38,13 @@ const RoomControls: React.FC<RoomControlsProps> = ({
     socket.emit("join-room", joinRoomCode, (response: any) => {
       switch (response.status) {
         case "no-room":
-          alert("No room found!");
+          alert("No room with that ID found!");
           break;
         case "room-full":
-          alert("Room is Full!");
+          alert("This room is already full.");
           break;
         case "ok":
-          alert("Room Joined!");
+          alert("Successfully joined the room!");
           setClients(response.clients);
           setRoomId(joinRoomCode);
           break;
@@ -41,22 +53,29 @@ const RoomControls: React.FC<RoomControlsProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 w-xs">
-      <button className="border-2 p-2" onClick={createRoom}>
-        Create Room
-      </button>
-      <div className="flex gap-2">
-        <input
-          className="border-2"
-          type="text"
-          onChange={(e) => setJoinRoomCode(e.target.value)}
-          placeholder="Enter Room ID"
-        />
-        <button className="border-2 p-2" onClick={joinRoom}>
-          Join
-        </button>
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Join a Room</CardTitle>
+        <CardDescription>
+          Create a new room or enter an existing room ID.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <Button onClick={createRoom} variant="outline">
+          Create New Room
+        </Button>
+        <Separator />
+        <div className="flex flex-col gap-2">
+          <Input
+            type="text"
+            value={joinRoomCode}
+            onChange={(e) => setJoinRoomCode(e.target.value)}
+            placeholder="Enter Room ID to join"
+          />
+          <Button onClick={joinRoom}>Join Room</Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
