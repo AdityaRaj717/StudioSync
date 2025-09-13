@@ -18,20 +18,28 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [localStream]);
 
   return (
-    <div className="flex gap-3">
-      <video
-        className="border-2"
-        ref={localVideoRef}
-        autoPlay
-        playsInline
-        muted
-      ></video>
-      <video
-        className="border-2"
-        ref={remoteVideoRef}
-        autoPlay
-        playsInline
-      ></video>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-6xl">
+      <div className="bg-card border rounded-lg overflow-hidden">
+        <video
+          className="w-full h-full object-cover"
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+        />
+        <p className="text-center font-semibold p-2 bg-secondary">Your View</p>
+      </div>
+      <div className="bg-card border rounded-lg overflow-hidden">
+        <video
+          className="w-full h-full object-cover"
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+        />
+        <p className="text-center font-semibold p-2 bg-secondary">
+          Remote View
+        </p>
+      </div>
     </div>
   );
 };
