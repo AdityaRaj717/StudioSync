@@ -24,7 +24,7 @@ export default function LoginPage() {
       );
       if (response.data.user) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        navigate("/video-page");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("Login failed:", error);
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
-      navigate("/video-page");
+      navigate("/dashboard");
     }
   }, [navigate]);
 

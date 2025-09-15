@@ -1,4 +1,5 @@
 import { Socket, Server } from "socket.io";
+import Session from "../model/Session.ts";
 
 interface Client {
   socketId: string;
@@ -35,7 +36,10 @@ export const roomHandler = (io: Server, socket: AuthenticatedSocket) => {
     }
   };
 
-  const joinRoom = (roomId: string, callback: (response: any) => void) => {
+  const joinRoom = async (
+    roomId: string,
+    callback: (response: any) => void
+  ) => {
     const room = rooms.find((r) => r.roomId === roomId);
     let status = "";
     if (!room) {
@@ -51,6 +55,16 @@ export const roomHandler = (io: Server, socket: AuthenticatedSocket) => {
         room.clients.push({ socketId: socket.id, userId: user.id });
         socket.join(roomId);
         status = "ok";
+
+        try {
+          await Session.updateOne(
+            { roomId },
+            { $addToSet: { participants: user.id } }
+          );
+        } catch (error) {
+          console.error("Failed to add participant to session:", error);
+        }
+
         const clientSocketIds = room.clients.map((c) => c.socketId);
         io.to(roomId).emit("new-member-joined", clientSocketIds);
       } else {

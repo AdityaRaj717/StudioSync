@@ -24,7 +24,7 @@ export default function SignupPage() {
       );
       if (response.data.user) {
         localStorage.setItem("user", JSON.stringify(response.data.user));
-        navigate("/video-page");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("Signup failed:", error);
@@ -38,7 +38,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
-      navigate("/video-page");
+      navigate("/dashboard");
     }
   }, [navigate]);
 
