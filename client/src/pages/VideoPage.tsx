@@ -50,7 +50,6 @@ function VideoPage() {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      {/* Control Panel Sidebar */}
       <aside className="w-80 border-r border-border p-4 flex flex-col gap-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">StreamSync</h1>
@@ -94,7 +93,6 @@ function VideoPage() {
         )}
       </aside>
 
-      {/* Main Video Stage */}
       <main className="flex-1 flex flex-col justify-center items-center p-6">
         {localStream ? (
           <VideoPlayer
