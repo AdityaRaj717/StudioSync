@@ -5,7 +5,6 @@ import axios from "axios";
 function SuccessLogin() {
   const navigate = useNavigate();
 
-  // client/src/pages/SuccessLogin.tsx
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -16,7 +15,7 @@ function SuccessLogin() {
 
         if (res.data.user) {
           localStorage.setItem("user", JSON.stringify(res.data.user));
-          navigate("/video-page");
+          navigate("/dashboard");
         } else {
           navigate("/login");
         }

@@ -12,6 +12,7 @@ import passport from "passport";
 import connect from "./config/db.ts";
 import "./config/passport.ts";
 import authRoute from "./routes/authRoute.ts";
+import sessionRoute from "./routes/sessionRoute.ts";
 import { initializeSocket } from "./socket/index.ts";
 
 const app = express();
@@ -24,7 +25,6 @@ const cert = fs.readFileSync(path.join(__dirname, "certs", "cert.crt"));
 const PORT = process.env.PORT || 3000;
 const server = https.createServer({ key, cert }, app);
 
-// Initialize Socket.IO
 initializeSocket(server);
 
 const startServer = async () => {
@@ -43,6 +43,7 @@ const startServer = async () => {
   app.use(passport.initialize());
 
   app.use("/auth", authRoute);
+  app.use("/api/sessions", sessionRoute);
   app.get("/", (req, res) => res.send("Hello World"));
 
   server.listen(PORT, () =>
