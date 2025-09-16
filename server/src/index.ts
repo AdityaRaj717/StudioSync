@@ -14,6 +14,7 @@ import "./config/passport.ts";
 import authRoute from "./routes/authRoute.ts";
 import sessionRoute from "./routes/sessionRoute.ts";
 import { initializeSocket } from "./socket/index.ts";
+import s3Route from "./routes/s3Route.ts";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +45,7 @@ const startServer = async () => {
 
   app.use("/auth", authRoute);
   app.use("/api/sessions", sessionRoute);
+  app.use("/api/s3", s3Route);
   app.get("/", (req, res) => res.send("Hello World"));
 
   server.listen(PORT, () =>
