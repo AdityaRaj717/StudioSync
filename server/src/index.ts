@@ -12,8 +12,8 @@ import passport from "passport";
 import connect from "./config/db.ts";
 import "./config/passport.ts";
 import authRoute from "./routes/authRoute.ts";
-import sessionRoute from "./routes/sessionRoute.ts";
 import { initializeSocket } from "./socket/index.ts";
+import sessionRoute from "./routes/sessionRoute.ts";
 import s3Route from "./routes/s3Route.ts";
 
 const app = express();

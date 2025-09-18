@@ -1,9 +1,10 @@
+import express from "express";
 import User from "../../model/User.ts";
 import { Strategy as JwtStrategy } from "passport-jwt";
 
-const cookieExtractor = (req: Request) => req.cookies?.token;
+const cookieExtractor = (req: express.Request) => req.cookies?.token;
 
-export default function jwtAuth(passport) {
+export default function jwtAuth(passport: any) {
   passport.use(
     new JwtStrategy(
       {
