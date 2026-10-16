@@ -1,169 +1,109 @@
-StudioSync
+# StudioSync
 
-StudioSync is a full-stack web application designed for real-time video conferencing and session recording. It provides a seamless experience for users to connect via peer-to-peer video calls, manage session rooms, and securely store recordings in the cloud. The application is built with a modern technology stack, featuring a React/TypeScript frontend and a Node.js/Express backend.
-Key Features
+A full-stack web app for one-to-one video calls with in-browser session recording. Built solo with a React/TypeScript frontend and a Node.js/Express backend.
 
-    Authentication: Secure user sign-up and login using both email/password and Google OAuth 2.0. Session management is handled with JWT.
+> **Status: work in progress.** Peer-to-peer calls, authentication, rooms and the session dashboard are implemented. The recording upload to S3 is written but hasn't been set up against a real bucket yet. Nothing is deployed.
 
-    Real-time Video & Audio: High-quality, low-latency peer-to-peer communication using WebRTC for video and audio streaming.
+## What's implemented
 
-    Room Management: Users can create new, unique video rooms or join existing ones using a room ID.
+- **Authentication:** email/password and Google OAuth 2.0 via Passport.js, with JWT-based sessions.
+- **Peer-to-peer video and audio:** WebRTC, with offers, answers and ICE candidates relayed over Socket.IO. Offers that arrive before the peer connection exists are queued.
+- **Rooms:** create a room or join one by ID. Rooms are limited to two people.
+- **Recording:** in-browser recording with the MediaRecorder API. The upload path asks the server for an S3 presigned URL so the video never passes through the server.
+- **Dashboard:** history of past sessions, stored in MongoDB.
 
-    Session Recording: In-browser recording of video sessions using the MediaRecorder API.
+## Known limitations
 
-    Cloud Storage: Recorded sessions are uploaded directly to an AWS S3 bucket using pre-signed URLs for secure and efficient storage.
+- Rooms are kept in server memory, so they are lost on restart and can't be shared across multiple server instances.
+- Only STUN is configured (no TURN server), so calls can fail on restrictive networks.
+- Calls are one-to-one only.
+- No automated tests yet.
 
-    Dashboard & Session History: An intuitive user dashboard to view a history of all past recording sessions.
+## Tech stack
 
-    Modern UI/UX: A responsive and visually appealing user interface built with Tailwind CSS and Radix UI components.
+**Client:** React, Vite, TypeScript, Tailwind CSS, shadcn/ui, Socket.IO client, Axios, React Router
 
-Tech Stack
-Frontend (Client)
+**Server:** Node.js, Express 5, TypeScript, MongoDB with Mongoose, Socket.IO, Passport.js (local, Google OAuth 2.0, JWT), AWS SDK v3 for S3 presigned URLs
 
-    Framework: React with Vite
+## Running locally
 
-    Language: TypeScript
+### Prerequisites
 
-    Styling: Tailwind CSS with Shadcn/UI components
+- Node.js 18 or newer
+- A MongoDB instance (local or Atlas)
+- [mkcert](https://github.com/FiloSottile/mkcert) for local HTTPS certificates. Browsers only allow camera access on secure origins.
+- Optional: an S3 bucket and IAM credentials, needed only for recording uploads
 
-    Real-time Communication: Socket.IO Client
+### 1. Generate local certificates
 
-    HTTP Client: Axios
+The server reads `server/src/certs/cert.key` and `cert.crt`. These are git-ignored, so generate your own:
 
-    Routing: React Router
+```bash
+mkcert -install
+mkdir -p server/src/certs
+mkcert -key-file server/src/certs/cert.key -cert-file server/src/certs/cert.crt localhost 127.0.0.1
+```
 
-Backend (Server)
+### 2. Server
 
-    Framework: Node.js with Express
+Create `server/.env`:
 
-    Language: TypeScript
-
-    Database: MongoDB with Mongoose
-
-    Real-time Communication: Socket.IO
-
-    Authentication: Passport.js (Local, Google OAuth 2.0, JWT strategies)
-
-    Cloud Storage: AWS SDK for S3 (for pre-signed URLs)
-
-Getting Started
-
-Follow these instructions to get a local copy of the project up and running for development and testing purposes.
-Prerequisites
-
-    Node.js (version 18.x or higher)
-
-    npm, yarn, or pnpm
-
-    A running MongoDB instance (local or a cloud service like MongoDB Atlas)
-
-    An AWS account with an S3 bucket and IAM credentials
-
-Installation & Setup
-
-    Clone the repository:
-
-    git clone [https://github.com/adityaraj717/studiosync.git](https://github.com/adityaraj717/studiosync.git)
-    cd studiosync
-
-    Set up the backend:
-
-        Navigate to the server directory: cd server
-
-        Install dependencies: npm install
-
-        Create a .env file and populate it with your credentials. See the .env.example section below.
-
-    Set up the frontend:
-
-        Navigate to the client directory: cd ../client
-
-        Install dependencies: npm install
-
-        Create a .env file and add your backend API URL.
-
-Environment Variables
-
-You will need to create .env files in both the client and server directories.
-Server (/server/.env)
-
+```
 PORT=3000
-MONGO_URI=<YOUR_MONGODB_CONNECTION_STRING>
+MONGO_URI=<mongodb connection string>
 UI_URL=https://localhost:5173
-JWT_SECRET=<YOUR_SUPER_SECRET_JWT_KEY>
+JWT_SECRET=<random secret>
 
-# Google OAuth Credentials
-GOOGLE_CLIENT_ID=<YOUR_GOOGLE_CLIENT_ID>
-GOOGLE_CLIENT_SECRET=<YOUR_GOOGLE_CLIENT_SECRET>
+GOOGLE_CLIENT_ID=<google oauth client id>
+GOOGLE_CLIENT_SECRET=<google oauth client secret>
 
-# AWS S3 Credentials
-AWS_REGION=<YOUR_AWS_S3_BUCKET_REGION>
-AWS_ACCESS_KEY_ID=<YOUR_AWS_ACCESS_KEY>
-AWS_SECRET_ACCESS_KEY=<YOUR_AWS_SECRET_KEY>
-AWS_BUCKET_NAME=<YOUR_AWS_S3_BUCKET_NAME>
+# Only needed for recording uploads
+AWS_REGION=<bucket region>
+AWS_ACCESS_KEY_ID=<access key>
+AWS_SECRET_ACCESS_KEY=<secret key>
+AWS_BUCKET_NAME=<bucket name>
+```
 
-Client (/client/.env)
+```bash
+cd server
+npm install
+npm start
+```
 
+### 3. Client
+
+Create `client/.env`:
+
+```
 VITE_API_URL=https://localhost:3000
+```
 
-Running the Application
+```bash
+cd client
+npm install
+npm run dev
+```
 
-    Start the backend server:
+The app runs at https://localhost:5173.
 
-        From the /server directory:
+## Project structure
 
-    npm start
+```
+client/src/
+  components/   auth, video controls, shadcn ui
+  hooks/        useSocket, useWebRTC, useMediaStream
+  pages/        Login, Signup, Dashboard, VideoPage
+server/src/
+  config/       database and Passport strategies
+  controllers/  auth, sessions, S3 presigned URLs
+  model/        User, Session
+  routes/       REST routes
+  socket/       Socket.IO room and signalling handlers
+```
 
-    The server will be running on https://localhost:3000.
+## Next steps
 
-    Start the frontend development server:
-
-        From the /client directory:
-
-    npm run dev
-
-    The application will be accessible at https://localhost:5173.
-
-Project Structure
-
-The project is organized into two main directories: client for the frontend application and server for the backend API.
-
-studiosync/
-├── client/              # React frontend application
-│   ├── public/
-│   └── src/
-│       ├── components/  # Reusable UI components
-│       ├── hooks/       # Custom React hooks (useSocket, useWebRTC, etc.)
-│       ├── pages/       # Page components for routing
-│       ├── App.tsx
-│       └── main.tsx
-├── server/              # Node.js backend API
-│   ├── src/
-│   │   ├── certs/       # SSL certificates for HTTPS
-│   │   ├── config/      # Database and Passport.js configurations
-│   │   ├── controllers/ # Request handlers and business logic
-│   │   ├── model/       # Mongoose schemas and models
-│   │   ├── routes/      # API route definitions
-│   │   └── socket/      # Socket.IO event handlers
-│   └── index.ts
-└── README.md
-
-Contributing
-
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-
-    Fork the Project
-
-    Create your Feature Branch (git checkout -b feature/AmazingFeature)
-
-    Commit your Changes (git commit -m 'Add some AmazingFeature')
-
-    Push to the Branch (git push origin feature/AmazingFeature)
-
-    Open a Pull Request
-
-License
-
-Distributed under the MIT License. See LICENSE for more information.
+- Move room state to Redis so it survives restarts and works across instances
+- Add a TURN server
+- Finish and test the recording upload end to end
+- Add tests

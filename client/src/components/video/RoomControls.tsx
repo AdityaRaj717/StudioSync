@@ -43,6 +43,9 @@ const RoomControls: React.FC<RoomControlsProps> = ({
         case "room-full":
           alert("This room is already full.");
           break;
+        case "already-joined":
+          alert("You are already in this room from another tab.");
+          break;
         case "ok":
           alert("Successfully joined the room!");
           setClients(response.clients);

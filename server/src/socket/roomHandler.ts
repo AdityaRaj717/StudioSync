@@ -72,10 +72,6 @@ export const roomHandler = (io: Server, socket: AuthenticatedSocket) => {
       }
     }
 
-    if (status === "already-joined") {
-      alert("You are already in this room from another tab.");
-    }
-
     callback({
       status,
       clients: room ? room.clients.map((c) => c.socketId) : [],
